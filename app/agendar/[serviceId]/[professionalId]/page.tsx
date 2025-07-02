@@ -1,36 +1,37 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Calendar, Clock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Header } from "@/components/header"
-import { supabase, type Service, type Professional } from "@/lib/supabase"
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Header } from "@/components/header";
+import { supabase, type Service, type Professional } from "@/lib/supabase";
 
 export default function SelectDateTimePage() {
-  const params = useParams()
-  const router = useRouter()
-  const serviceId = params.serviceId as string
-  const professionalId = params.professionalId as string
+  const params = useParams();
+  const router = useRouter();
+  const serviceId = params.serviceId as string;
+  const professionalId = params.professionalId as string;
 
-  const [service, setService] = useState<Service | null>(null)
-  const [professional, setProfessional] = useState<Professional | null>(null)
-  const [selectedDate, setSelectedDate] = useState<string>("")
-  const [availableTimes, setAvailableTimes] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
+  const [service, setService] = useState<Service | null>(null);
+  const [professional, setProfessional] = useState<Professional | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (serviceId && professionalId) {
-      fetchData()
+      fetchData();
     }
-  }, [serviceId, professionalId])
+  }, [serviceId, professionalId]);
 
   useEffect(() => {
     if (selectedDate) {
-      fetchAvailableTimes()
+      fetchAvailableTimes();
     }
-  }, [selectedDate, professionalId])
+  }, [selectedDate, professionalId]);
 
   const fetchData = async () => {
     try {
@@ -39,26 +40,27 @@ export default function SelectDateTimePage() {
         .from("services")
         .select("*")
         .eq("id", serviceId)
-        .single()
+        .single();
 
-      if (serviceError) throw serviceError
-      setService(serviceData)
+      if (serviceError) throw serviceError;
+      setService(serviceData);
 
       // Fetch professional
-      const { data: professionalData, error: professionalError } = await supabase
-        .from("professionals")
-        .select("*")
-        .eq("id", professionalId)
-        .single()
+      const { data: professionalData, error: professionalError } =
+        await supabase
+          .from("professionals")
+          .select("*")
+          .eq("id", professionalId)
+          .single();
 
-      if (professionalError) throw professionalError
-      setProfessional(professionalData)
+      if (professionalError) throw professionalError;
+      setProfessional(professionalData);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error)
+      console.error("Erro ao carregar dados:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchAvailableTimes = async () => {
     try {
@@ -68,73 +70,154 @@ export default function SelectDateTimePage() {
         .select("appointment_time")
         .eq("professional_id", professionalId)
         .eq("appointment_date", selectedDate)
-        .eq("status", "scheduled")
+        .eq("status", "scheduled");
 
-      if (error) throw error
+      if (error) throw error;
 
-      // Generate available times (9:00 to 18:00, every 30 minutes)
-      const allTimes = []
+      // Generate all possible times (9:00 to 18:00, every 30 minutes)
+      const allTimes = [];
       for (let hour = 9; hour < 18; hour++) {
-        allTimes.push(`${hour.toString().padStart(2, "0")}:00`)
-        allTimes.push(`${hour.toString().padStart(2, "0")}:30`)
+        allTimes.push(`${hour.toString().padStart(2, "0")}:00`);
+        allTimes.push(`${hour.toString().padStart(2, "0")}:30`);
       }
 
-      // Filter out booked times
-      const bookedTimes = appointments?.map((apt) => apt.appointment_time) || []
-      const available = allTimes.filter((time) => !bookedTimes.includes(time))
+      // Get booked times
+      const bookedTimesList =
+        appointments?.map((apt) => apt.appointment_time) || [];
+      setBookedTimes(bookedTimesList);
 
-      setAvailableTimes(available)
+      // Filter out booked times for available times
+      const available = allTimes.filter(
+        (time) => !bookedTimesList.includes(time)
+      );
+
+      // Filter out past times if selected date is today
+      const today = new Date();
+      const isToday = selectedDate === formatDate(today);
+
+      if (isToday) {
+        const currentTime = today.getHours() * 60 + today.getMinutes();
+        const filteredTimes = available.filter((time) => {
+          const [hours, minutes] = time.split(":").map(Number);
+          const timeInMinutes = hours * 60 + minutes;
+          return timeInMinutes > currentTime + 30; // Add 30 minutes buffer
+        });
+        setAvailableTimes(filteredTimes);
+      } else {
+        setAvailableTimes(available);
+      }
     } catch (error) {
-      console.error("Erro ao carregar horários:", error)
+      console.error("Erro ao carregar horários:", error);
     }
-  }
+  };
 
   const generateDates = () => {
-    const dates = []
-    const today = new Date()
+    const dates = [];
+    const today = new Date();
 
     for (let i = 0; i < 14; i++) {
-      const date = new Date(today)
-      date.setDate(today.getDate() + i)
-      dates.push(date)
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      dates.push(date);
     }
 
-    return dates
-  }
+    return dates;
+  };
 
   const formatDate = (date: Date) => {
-    return date.toISOString().split("T")[0]
-  }
-
-  const formatDisplayDate = (date: Date) => {
-    return date.toLocaleDateString("pt-BR", {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit",
-    })
-  }
+    return date.toISOString().split("T")[0];
+  };
 
   const getCurrentMonth = () => {
-    if (!selectedDate) return ""
-    const date = new Date(selectedDate)
+    if (!selectedDate) return "";
+    const date = new Date(selectedDate);
     return date.toLocaleDateString("pt-BR", {
       month: "long",
       year: "numeric",
-    })
-  }
+    });
+  };
 
-  const handleTimeSelect = (time: string) => {
-    const appointmentData = {
-      serviceId,
-      professionalId,
-      date: selectedDate,
-      time,
+  const getAllTimes = () => {
+    const allTimes = [];
+    for (let hour = 9; hour < 18; hour++) {
+      allTimes.push(`${hour.toString().padStart(2, "0")}:00`);
+      allTimes.push(`${hour.toString().padStart(2, "0")}:30`);
     }
+    return allTimes;
+  };
 
-    // Store in sessionStorage for the confirmation page
-    sessionStorage.setItem("appointmentData", JSON.stringify(appointmentData))
-    router.push("/confirmar-agendamento")
-  }
+  const isTimeAvailable = (time: string) => {
+    return availableTimes.includes(time);
+  };
+
+  const isTimeBooked = (time: string) => {
+    return bookedTimes.includes(time);
+  };
+
+  const isTimePast = (time: string) => {
+    if (!selectedDate) return false;
+
+    const today = new Date();
+    const isToday = selectedDate === formatDate(today);
+
+    if (!isToday) return false;
+
+    const currentTime = today.getHours() * 60 + today.getMinutes();
+    const [hours, minutes] = time.split(":").map(Number);
+    const timeInMinutes = hours * 60 + minutes;
+
+    return timeInMinutes <= currentTime + 30;
+  };
+
+  const handleTimeSelect = async (time: string) => {
+    if (!isTimeAvailable(time)) return;
+
+    // Double-check availability before proceeding
+    try {
+      const { data: existingAppointment, error } = await supabase
+        .from("appointments")
+        .select("id")
+        .eq("professional_id", professionalId)
+        .eq("appointment_date", selectedDate)
+        .eq("appointment_time", time)
+        .eq("status", "scheduled")
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+
+      if (existingAppointment) {
+        alert(
+          "Este horário acabou de ser ocupado por outro cliente. Por favor, escolha outro horário."
+        );
+        // Refresh available times
+        fetchAvailableTimes();
+        return;
+      }
+
+      const appointmentData = {
+        serviceId,
+        professionalId,
+        date: selectedDate,
+        time,
+        serviceName: service?.name || "",
+        professionalName: professional?.name || "",
+        duration: service?.duration_minutes || 0,
+        price: service?.price || 0,
+      };
+
+      // Store in sessionStorage for the confirmation page
+      sessionStorage.setItem(
+        "appointmentData",
+        JSON.stringify(appointmentData)
+      );
+      router.push("/confirmar-agendamento");
+    } catch (error) {
+      console.error("Erro ao verificar disponibilidade:", error);
+      alert("Erro ao verificar disponibilidade. Tente novamente.");
+    }
+  };
 
   if (loading) {
     return (
@@ -143,14 +226,17 @@ export default function SelectDateTimePage() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Carregando...</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">
+              Carregando...
+            </p>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
-  const dates = generateDates()
+  const dates = generateDates();
+  const allTimes = getAllTimes();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -168,14 +254,17 @@ export default function SelectDateTimePage() {
           </Button>
 
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Selecione Data e Horário</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Horários Disponíveis - {getCurrentMonth()}
+            </h1>
             {service && professional && (
               <div className="text-gray-600 dark:text-gray-400">
                 <p>
                   Serviço: <span className="font-medium">{service.name}</span>
                 </p>
                 <p>
-                  Profissional: <span className="font-medium">{professional.name}</span>
+                  Profissional:{" "}
+                  <span className="font-medium">{professional.name}</span>
                 </p>
               </div>
             )}
@@ -192,9 +281,9 @@ export default function SelectDateTimePage() {
           <div className="overflow-x-auto">
             <div className="flex space-x-3 pb-4">
               {dates.map((date) => {
-                const dateStr = formatDate(date)
-                const isSelected = selectedDate === dateStr
-                const isToday = formatDate(new Date()) === dateStr
+                const dateStr = formatDate(date);
+                const isSelected = selectedDate === dateStr;
+                const isToday = formatDate(new Date()) === dateStr;
 
                 return (
                   <Button
@@ -208,11 +297,13 @@ export default function SelectDateTimePage() {
                     onClick={() => setSelectedDate(dateStr)}
                   >
                     <div className="text-center">
-                      <div className="text-xs opacity-75">{date.toLocaleDateString("pt-BR", { weekday: "short" })}</div>
+                      <div className="text-xs opacity-75">
+                        {date.toLocaleDateString("pt-BR", { weekday: "short" })}
+                      </div>
                       <div className="font-semibold">{date.getDate()}</div>
                     </div>
                   </Button>
-                )
+                );
               })}
             </div>
           </div>
@@ -223,26 +314,40 @@ export default function SelectDateTimePage() {
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
               <Clock className="h-5 w-5 mr-2" />
-              Horários Disponíveis - {getCurrentMonth()}
+              Horários - {getCurrentMonth()}
             </h2>
 
-            {availableTimes.length > 0 ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                {availableTimes.map((time) => (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {allTimes.map((time) => {
+                const available = isTimeAvailable(time);
+                const booked = isTimeBooked(time);
+                const past = isTimePast(time);
+                const disabled = !available || booked || past;
+
+                return (
                   <Button
                     key={time}
                     variant="outline"
-                    className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900"
+                    disabled={disabled}
+                    className={`${
+                      available && !booked && !past
+                        ? "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900 border-gray-300 dark:border-gray-600"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed border-gray-200 dark:border-gray-600"
+                    }`}
                     onClick={() => handleTimeSelect(time)}
                   >
                     {time}
                   </Button>
-                ))}
-              </div>
-            ) : (
-              <Card className="bg-white dark:bg-gray-800">
+                );
+              })}
+            </div>
+
+            {availableTimes.length === 0 && (
+              <Card className="bg-white dark:bg-gray-800 mt-4">
                 <CardContent className="p-6 text-center">
-                  <p className="text-gray-600 dark:text-gray-400">Não há horários disponíveis para esta data.</p>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Não há horários disponíveis para esta data.
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -250,5 +355,5 @@ export default function SelectDateTimePage() {
         )}
       </main>
     </div>
-  )
+  );
 }

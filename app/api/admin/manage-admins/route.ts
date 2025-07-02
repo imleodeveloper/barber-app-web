@@ -41,6 +41,32 @@ export async function POST(req: Request) {
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
+    // Se for admin comum e não tiver professional_id, criar um profissional automaticamente
+    let finalProfessionalId = professional_id;
+
+    if (role === "admin" && !professional_id) {
+      // Criar profissional automaticamente
+      const { data: newProfessional, error: profError } = await supabase
+        .from("professionals")
+        .insert({
+          name,
+          email,
+          active: true,
+        })
+        .select()
+        .single();
+
+      if (profError) {
+        console.error("Erro ao criar profissional:", profError);
+        return NextResponse.json(
+          { error: "Erro ao criar profissional automaticamente" },
+          { status: 500 }
+        );
+      }
+
+      finalProfessionalId = newProfessional.id;
+    }
+
     const { data: admin, error } = await supabase
       .from("admins")
       .insert({
@@ -48,7 +74,7 @@ export async function POST(req: Request) {
         password_hash,
         name,
         role: role || "admin",
-        professional_id: professional_id || null,
+        professional_id: finalProfessionalId || null,
       })
       .select()
       .single();

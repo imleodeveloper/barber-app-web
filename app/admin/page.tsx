@@ -17,6 +17,8 @@ import {
   Plus,
   Mail,
   Phone,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +42,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useTheme } from "@/contexts/theme-context";
 
 interface Admin {
   id: string;
@@ -84,6 +87,9 @@ interface Service {
 }
 
 export default function AdminPage() {
+  // Claro e escuro
+  const { theme, toggleTheme } = useTheme();
+  //
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentAdmin, setCurrentAdmin] = useState<Admin | null>(null);
@@ -699,7 +705,7 @@ export default function AdminPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@salon.com"
+                  placeholder="admin@email.com"
                   required
                   className="mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
@@ -781,6 +787,20 @@ export default function AdminPage() {
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 {currentAdmin?.name}
               </span>
+              <div className="flex justify-center items-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleTheme}
+                  className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+                >
+                  {theme === "light" ? (
+                    <Moon className="h-4 w-4" />
+                  ) : (
+                    <Sun className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
               <Button
                 variant="outline"
                 onClick={handleLogout}
@@ -1746,7 +1766,7 @@ export default function AdminPage() {
                       {services.map((service) => (
                         <tr
                           key={service.id}
-                          className="border-b border-gray-100 dark:border-gray-700"
+                          className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-200"
                         >
                           <td className="py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
                             {service.name}
