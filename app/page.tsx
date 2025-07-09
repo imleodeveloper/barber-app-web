@@ -9,6 +9,7 @@ import { supabase, type Service } from "@/lib/supabase";
 import Link from "next/link";
 import { QuickSearch } from "@/components/quick-search";
 import { RecentAppointments } from "@/components/recent-appointments";
+import { Footer } from "@/components/footer";
 
 export default function HomePage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -94,7 +95,7 @@ export default function HomePage() {
       <Header />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-12 mb-8 rounded-lg">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-12 mb-8 rounded-lg ">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">Agende Seu Horário</h1>
           <p className="text-xl mb-6 opacity-90">
@@ -105,7 +106,7 @@ export default function HomePage() {
             <Link href="/meus-agendamentos">
               <Button
                 variant="outline"
-                className="bg-white text-blue-600 hover:bg-gray-100 border-white"
+                className="bg-white text-blue-600 hover:bg-gray-100 border-white dark:hover:bg-gray-400 dark:hover:text-black"
               >
                 <Phone className="h-4 w-4 mr-2" />
                 Ver Meus Agendamentos
@@ -116,12 +117,12 @@ export default function HomePage() {
       </div>
 
       {/* Quick Search */}
-      <div className="mb-8">
+      <div className="mb-8 max-w-4xl mx-auto">
         <QuickSearch />
       </div>
 
       {/* Recent Appointments */}
-      <div className="mb-8">
+      <div className="mb-8 max-w-4xl mx-auto">
         <RecentAppointments />
       </div>
 
@@ -180,6 +181,7 @@ export default function HomePage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }
