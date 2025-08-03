@@ -901,7 +901,8 @@ export default function AdminPage() {
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const [year, month, day] = dateStr.split("-");
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
     return date.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",

@@ -1,14 +1,9 @@
 "use client";
 
-import { Moon, Sun, Calendar, Phone } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useTheme } from "@/contexts/theme-context";
 import Link from "next/link";
 import Image from "next/image";
 
 export function Footer() {
-  const { theme, toggleTheme } = useTheme();
-
   return (
     <footer className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
